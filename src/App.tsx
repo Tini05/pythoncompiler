@@ -88,7 +88,7 @@ const App: React.FC = () => {
         }
       }
 
-      const API_URL = process.env.REACT_APP_API_URL;
+      const API_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(`${API_URL}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -188,7 +188,7 @@ const App: React.FC = () => {
     const prompts = extractPromptsFromCode(code);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL;
+      const API_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(`${API_URL}/send_input`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
