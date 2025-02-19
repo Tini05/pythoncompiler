@@ -2,7 +2,8 @@
   "compilerOptions": {
       "jsx": "react-jsx", // For React 17+
       "moduleResolution": "node",
-      "target": "ES2015", // or "ES2020", "ESNext" if you want to use the latest features
+      "module": "ESNext",  // or "ES2020" or "ES2022"
+      "target": "ESNext",  // optional but recommended
       "lib": ["ES2015", "DOM"],  // Add ES2015 (or higher) to the lib array
       "strict": true,
       "esModuleInterop": true,
@@ -14,3 +15,4 @@
     "src/**/*"
   ]
 }
+
