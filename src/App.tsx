@@ -88,7 +88,8 @@ const App: React.FC = () => {
         }
       }
 
-      const response = await fetch("http://localhost:5000/run", {
+      const API_URL = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API_URL}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
@@ -187,7 +188,8 @@ const App: React.FC = () => {
     const prompts = extractPromptsFromCode(code);
 
     try {
-      const response = await fetch("http://localhost:5000/send_input", {
+      const API_URL = process.env.REACT_APP_API_URL;
+      const response = await fetch(`${API_URL}/send_input`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input: inputValue.trim() }),
