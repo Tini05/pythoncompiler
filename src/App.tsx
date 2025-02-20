@@ -1,4 +1,5 @@
 import { time, motion } from "framer-motion";
+import { io } from "socket.io-client";
 import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, Container, Row, Col, Card, Form, Modal } from "react-bootstrap";
@@ -89,13 +90,14 @@ const App: React.FC = () => {
       socket.emit('run_code', { code });
   
       // Listen for the response from the server
-      socket.on('output', (response) => {
+      socket.on('output', (response: OutputResponse) => {
         const { chunk } = response;
+        // Now TypeScript knows that 'chunk' is a string
   
         // Handling chunk-based response updates, similar to the previous logic
         if (prompts.length > 0) {
           let updatedChunk = chunk;
-          let updNew = [];
+          let updNew: string[] = [];
           for (let i = prompts.length - 1; i >= 0; i--) {
             if (updatedChunk.includes(prompts[i])) {
               console.log(updatedChunk);
@@ -184,8 +186,9 @@ const App: React.FC = () => {
       socket.emit('send_input', { input: inputValue.trim() });
   
       // Listen for the server response
-      socket.on('output', (data) => {
+      socket.on('output', (data: OutputData) => {
         const { output } = data;
+        // Now TypeScript knows that 'output' is a string
   
         console.log(`✅ Received response from socket: "${output}"`);
   
@@ -197,7 +200,7 @@ const App: React.FC = () => {
   
         if (prompts.length > 0) {
           let updatedChunk = output;
-          let updNew = [];
+          let updNew: string[] = [];
           for (let i = prompts.length; i >= 0; i--) {
             if (updatedChunk.includes(prompts[i])) {
               console.log(updatedChunk);
