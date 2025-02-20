@@ -25,6 +25,14 @@ const App: React.FC = () => {
   const [originalX, setOriginalX] = useState(0);
   const [width, setWidth] = useState(0);
 
+  interface OutputResponse {
+    chunk: string;  // assuming chunk is a string; change if it's a different type
+  }
+  
+  interface OutputData {
+    output: string;  // assuming output is a string; change if it's a different type
+  }
+  
   // Ensure correct position before rendering
   useLayoutEffect(() => {
     if (buttonRef.current) {
@@ -90,7 +98,7 @@ const App: React.FC = () => {
       socket.emit('run_code', { code });
   
       // Listen for the response from the server
-      socket.on('output', (response: string) => {
+      socket.on('output', (response: OutputResponse) => {
         const { chunk } = response;
         // Now TypeScript knows that 'chunk' is a string
   
@@ -186,7 +194,7 @@ const App: React.FC = () => {
       socket.emit('send_input', { input: inputValue.trim() });
   
       // Listen for the server response
-      socket.on('output', (data: string) => {
+      socket.on('output', (data: OutputData) => {
         const { output } = data;
         // Now TypeScript knows that 'output' is a string
   
