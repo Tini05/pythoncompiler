@@ -72,173 +72,168 @@ const App: React.FC = () => {
     return prompts;
   };
 
+  const socket = io('https://flaskcompilerside.onrender.com'); // Initialize socket connection
+
   const handleRunCode = async () => {
     if (isLoading === true) return;
     setIsLoading(true);
     setTerminalHistory((prev) => [...prev, ">>> Running..."]);
-
+  
     const prompts = extractPromptsFromCode(code);
     console.log("Prompts to be displayed:", prompts);
-
+  
     try {
-      console.log("🔄 Sending request to run code...");
-      for (let i = 0; i < prompts.length; i++) {
-        if (prompts[i]) {
-          setTerminalHistory((prev) => [...prev, prompts[i]]);
-        }
-      }
-
-      const API_URL = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${API_URL}/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-
-      console.log("✅ Received response from /run");
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (reader) {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true }).trim();
-          console.log(`📜 Received chunk: "${chunk}"`);
-
-          if (prompts.length > 0) {
-            let updatedChunk = chunk;
-            let updNew: string[] = [];
-            for (let i = prompts.length-1; i >= 0; i--) {
-              if (updatedChunk.includes(prompts[i])) {
-                console.log(updatedChunk);
-                let updNew = updatedChunk.split(prompts[i]);  
-                updatedChunk = updNew[1];         
-              }
+      console.log("🔄 Sending request to run code via socket...");
+      
+      // Emit a socket event to send the code and request execution
+      socket.emit('run_code', { code });
+  
+      // Listen for the response from the server
+      socket.on('output', (response) => {
+        const { chunk } = response;
+  
+        // Handling chunk-based response updates, similar to the previous logic
+        if (prompts.length > 0) {
+          let updatedChunk = chunk;
+          let updNew = [];
+          for (let i = prompts.length - 1; i >= 0; i--) {
+            if (updatedChunk.includes(prompts[i])) {
+              console.log(updatedChunk);
+              let updNew = updatedChunk.split(prompts[i]);
+              updatedChunk = updNew[1];
             }
-            if (updNew.length > 2){
-              updatedChunk = updNew[updNew.length-1];
-            }
-            setTerminalHistory((prev) => [...prev, updatedChunk]);
+          }
+          if (updNew.length > 2) {
+            updatedChunk = updNew[updNew.length - 1];
+          }
+          setTerminalHistory((prev) => [...prev, updatedChunk]);
+          if (isInputRequired) {
             setIsInputRequired(true);
-            setIsLoading(false);
-          } else {
-            if (chunk.trim() !== "") {
-              setTerminalHistory((prev) => [...prev, chunk]);
-            }
-            setIsLoading(false);
+          }
+        } else {
+          if (chunk.trim() !== "") {
+            setTerminalHistory((prev) => [...prev, chunk]);
           }
         }
-      }
+  
+        // End loading state
+        setIsLoading(false);
+      });
+  
     } catch (error) {
-      console.error("❌ Error running the code:", error);
+      console.error("❌ Error running the code via socket:", error);
       setTerminalHistory((prev) => [...prev, "Error running the code"]);
-    } finally {
       setIsLoading(false);
+    } finally {
+      // No changes in loading state on error
     }
   };
 
-  const handleSendInput = async () => {
-    if (!inputValue.trim()) return;
+  const socket = io('https://flaskcompilerside.onrender.com'); // Initialize socket connection
 
-    console.log(`🔄 Sending input: "${inputValue}"`);
-    setTerminalHistory((prev) => [...prev, `>>> ${inputValue}`]);
+const handleSendInput = async () => {
+  if (!inputValue.trim()) return;
 
-    
-    if (isLoading === false){
-      if (inputValue.trim() === "save") {
-        const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-        FileSaver.saveAs(blob, "code.py");
-        setTerminalHistory((prev) => [...prev, "File saved as code.py"]);
-        setInputValue("");
-        return;
-      }
+  console.log(`🔄 Sending input: "${inputValue}"`);
+  setTerminalHistory((prev) => [...prev, `>>> ${inputValue}`]);
 
-      if (inputValue.trim() === "clear") {
-        setTerminalHistory([]);
-        setInputValue("");
-        return;
-      }
-
-      if (inputValue.trim() === "new") {
-        setCode("");
-        setTerminalHistory((prev) => [...prev, "Code editor cleared"]);
-        setInputValue("");
-        return;
-      }
-
-      if (inputValue.trim() === "help") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          "Available commands:",
-          "save - Saves the current code as a .py file",
-          "clear - Clears the terminal history",
-          "new - Clears the code editor",
-          "help - Shows this help message"
-        ]);
-        setInputValue("");
-        return;
-      }
-
+  if (isLoading === false) {
+    // Handle special commands
+    if (inputValue.trim() === "save") {
+      const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+      FileSaver.saveAs(blob, "code.py");
+      setTerminalHistory((prev) => [...prev, "File saved as code.py"]);
       setInputValue("");
       return;
     }
 
-    const prompts = extractPromptsFromCode(code);
+    if (inputValue.trim() === "clear") {
+      setTerminalHistory([]);
+      setInputValue("");
+      return;
+    }
 
-    try {
-      const API_URL = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${API_URL}/send_input`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: inputValue.trim() }),
-      });
+    if (inputValue.trim() === "new") {
+      setCode("");
+      setTerminalHistory((prev) => [...prev, "Code editor cleared"]);
+      setInputValue("");
+      return;
+    }
 
-      console.log(`✅ Received response from /send_input (Status: ${response.status})`);
-      
-      if (!response.ok) {
+    if (inputValue.trim() === "help") {
+      setTerminalHistory((prev) => [
+        ...prev,
+        "Available commands:",
+        "save - Saves the current code as a .py file",
+        "clear - Clears the terminal history",
+        "new - Clears the code editor",
+        "help - Shows this help message"
+      ]);
+      setInputValue("");
+      return;
+    }
+
+    setInputValue("");
+    return;
+  }
+
+  const prompts = extractPromptsFromCode(code);
+
+  try {
+    console.log(`🔄 Sending input to server via socket...`);
+
+    // Emit the input value to the backend
+    socket.emit('send_input', { input: inputValue.trim() });
+
+    // Listen for the server response
+    socket.on('output', (data) => {
+      const { output } = data;
+
+      console.log(`✅ Received response from socket: "${output}"`);
+
+      if (!output) {
         setTerminalHistory((prev) => [...prev, "Error: No running process"]);
         setInputValue("");
         return;
       }
 
-      const data = await response.json();
-      console.log(`📜 Received output: "${data.output}"`);
-      
       if (prompts.length > 0) {
-        let updatedChunk = data.output;
-        let updNew: string[] = [];
+        let updatedChunk = output;
+        let updNew = [];
         for (let i = prompts.length; i >= 0; i--) {
           if (updatedChunk.includes(prompts[i])) {
             console.log(updatedChunk);
-            let updNew = updatedChunk.split(prompts[i]);  
-            updatedChunk = updNew[1];       
-          }        
+            updNew = updatedChunk.split(prompts[i]);
+            updatedChunk = updNew[1];
+          }
         }
-        if (updNew.length > 2){
-          updatedChunk = updNew[updNew.length-1];
+        if (updNew.length > 2) {
+          updatedChunk = updNew[updNew.length - 1];
         }
-        console.log(updatedChunk);
         setTerminalHistory((prev) => [...prev, updatedChunk]);
-        setInputValue("");
       } else {
-        console.log(data.output);
-        if (data.output.trim() !== "") {
-          setTerminalHistory((prev) => [...prev, data.output]);
+        if (output.trim() !== "") {
+          setTerminalHistory((prev) => [...prev, output]);
         }
         setIsLoading(false);
-        setInputValue("");
       }
 
+      // Clear the input field after receiving the response
       setInputValue("");
-    } catch (error) {
-      console.error("❌ Error sending input:", error);
-      setTerminalHistory((prev) => [...prev, "Error sending input"]);
-      setIsLoading(false);
-      setInputValue("");
-    }
-  };
+    });
+
+    // Set loading state
+    setIsLoading(true);
+    setInputValue(""); // Clear input field
+
+  } catch (error) {
+    console.error("❌ Error sending input:", error);
+    setTerminalHistory((prev) => [...prev, "Error sending input"]);
+    setIsLoading(false);
+    setInputValue("");
+  }
+};
+
 
   // Handle dynamic resizing for textarea (height only)
   useEffect(() => {
