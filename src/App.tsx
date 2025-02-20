@@ -83,7 +83,7 @@ const App: React.FC = () => {
     console.log("Prompts to be displayed:", prompts);
   
     try {
-      console.log("🔄 Sending request to run code via socket...");
+      console.log("🔄 Sending request to run code via ...");
       
       // Emit a socket event to send the code and request execution
       socket.emit('run_code', { code });
@@ -129,110 +129,108 @@ const App: React.FC = () => {
     }
   };
 
-  const socket = io('https://flaskcompilerside.onrender.com'); // Initialize socket connection
-
-const handleSendInput = async () => {
-  if (!inputValue.trim()) return;
-
-  console.log(`🔄 Sending input: "${inputValue}"`);
-  setTerminalHistory((prev) => [...prev, `>>> ${inputValue}`]);
-
-  if (isLoading === false) {
-    // Handle special commands
-    if (inputValue.trim() === "save") {
-      const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-      FileSaver.saveAs(blob, "code.py");
-      setTerminalHistory((prev) => [...prev, "File saved as code.py"]);
-      setInputValue("");
-      return;
-    }
-
-    if (inputValue.trim() === "clear") {
-      setTerminalHistory([]);
-      setInputValue("");
-      return;
-    }
-
-    if (inputValue.trim() === "new") {
-      setCode("");
-      setTerminalHistory((prev) => [...prev, "Code editor cleared"]);
-      setInputValue("");
-      return;
-    }
-
-    if (inputValue.trim() === "help") {
-      setTerminalHistory((prev) => [
-        ...prev,
-        "Available commands:",
-        "save - Saves the current code as a .py file",
-        "clear - Clears the terminal history",
-        "new - Clears the code editor",
-        "help - Shows this help message"
-      ]);
-      setInputValue("");
-      return;
-    }
-
-    setInputValue("");
-    return;
-  }
-
-  const prompts = extractPromptsFromCode(code);
-
-  try {
-    console.log(`🔄 Sending input to server via socket...`);
-
-    // Emit the input value to the backend
-    socket.emit('send_input', { input: inputValue.trim() });
-
-    // Listen for the server response
-    socket.on('output', (data) => {
-      const { output } = data;
-
-      console.log(`✅ Received response from socket: "${output}"`);
-
-      if (!output) {
-        setTerminalHistory((prev) => [...prev, "Error: No running process"]);
+  const handleSendInput = async () => {
+    if (!inputValue.trim()) return;
+  
+    console.log(`🔄 Sending input: "${inputValue}"`);
+    setTerminalHistory((prev) => [...prev, `>>> ${inputValue}`]);
+  
+    if (isLoading === false) {
+      // Handle special commands
+      if (inputValue.trim() === "save") {
+        const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+        FileSaver.saveAs(blob, "code.py");
+        setTerminalHistory((prev) => [...prev, "File saved as code.py"]);
         setInputValue("");
         return;
       }
-
-      if (prompts.length > 0) {
-        let updatedChunk = output;
-        let updNew = [];
-        for (let i = prompts.length; i >= 0; i--) {
-          if (updatedChunk.includes(prompts[i])) {
-            console.log(updatedChunk);
-            updNew = updatedChunk.split(prompts[i]);
-            updatedChunk = updNew[1];
-          }
-        }
-        if (updNew.length > 2) {
-          updatedChunk = updNew[updNew.length - 1];
-        }
-        setTerminalHistory((prev) => [...prev, updatedChunk]);
-      } else {
-        if (output.trim() !== "") {
-          setTerminalHistory((prev) => [...prev, output]);
-        }
-        setIsLoading(false);
+  
+      if (inputValue.trim() === "clear") {
+        setTerminalHistory([]);
+        setInputValue("");
+        return;
       }
-
-      // Clear the input field after receiving the response
+  
+      if (inputValue.trim() === "new") {
+        setCode("");
+        setTerminalHistory((prev) => [...prev, "Code editor cleared"]);
+        setInputValue("");
+        return;
+      }
+  
+      if (inputValue.trim() === "help") {
+        setTerminalHistory((prev) => [
+          ...prev,
+          "Available commands:",
+          "save - Saves the current code as a .py file",
+          "clear - Clears the terminal history",
+          "new - Clears the code editor",
+          "help - Shows this help message"
+        ]);
+        setInputValue("");
+        return;
+      }
+  
       setInputValue("");
-    });
-
-    // Set loading state
-    setIsLoading(true);
-    setInputValue(""); // Clear input field
-
-  } catch (error) {
-    console.error("❌ Error sending input:", error);
-    setTerminalHistory((prev) => [...prev, "Error sending input"]);
-    setIsLoading(false);
-    setInputValue("");
-  }
-};
+      return;
+    }
+  
+    const prompts = extractPromptsFromCode(code);
+  
+    try {
+      console.log(`🔄 Sending input to server via socket...`);
+  
+      // Emit the input value to the backend
+      socket.emit('send_input', { input: inputValue.trim() });
+  
+      // Listen for the server response
+      socket.on('output', (data) => {
+        const { output } = data;
+  
+        console.log(`✅ Received response from socket: "${output}"`);
+  
+        if (!output) {
+          setTerminalHistory((prev) => [...prev, "Error: No running process"]);
+          setInputValue("");
+          return;
+        }
+  
+        if (prompts.length > 0) {
+          let updatedChunk = output;
+          let updNew = [];
+          for (let i = prompts.length; i >= 0; i--) {
+            if (updatedChunk.includes(prompts[i])) {
+              console.log(updatedChunk);
+              updNew = updatedChunk.split(prompts[i]);
+              updatedChunk = updNew[1];
+            }
+          }
+          if (updNew.length > 2) {
+            updatedChunk = updNew[updNew.length - 1];
+          }
+          setTerminalHistory((prev) => [...prev, updatedChunk]);
+        } else {
+          if (output.trim() !== "") {
+            setTerminalHistory((prev) => [...prev, output]);
+          }
+          setIsLoading(false);
+        }
+  
+        // Clear the input field after receiving the response
+        setInputValue("");
+      });
+  
+      // Set loading state
+      setIsLoading(true);
+      setInputValue(""); // Clear input field
+  
+    } catch (error) {
+      console.error("❌ Error sending input:", error);
+      setTerminalHistory((prev) => [...prev, "Error sending input"]);
+      setIsLoading(false);
+      setInputValue("");
+    }
+  };
 
 
   // Handle dynamic resizing for textarea (height only)
