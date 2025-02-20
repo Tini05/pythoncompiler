@@ -90,7 +90,7 @@ const App: React.FC = () => {
       socket.emit('run_code', { code });
   
       // Listen for the response from the server
-      socket.on('output', (response: OutputResponse) => {
+      socket.on('output', (response: string) => {
         const { chunk } = response;
         // Now TypeScript knows that 'chunk' is a string
   
@@ -186,7 +186,7 @@ const App: React.FC = () => {
       socket.emit('send_input', { input: inputValue.trim() });
   
       // Listen for the server response
-      socket.on('output', (data: OutputData) => {
+      socket.on('output', (data: string) => {
         const { output } = data;
         // Now TypeScript knows that 'output' is a string
   
