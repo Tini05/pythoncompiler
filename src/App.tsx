@@ -28,7 +28,6 @@ const App: React.FC = () => {
   interface OutputResponse {
     chunk: string;  // assuming chunk is a string; change if it's a different type
   }
-  
   interface OutputData {
     output: string;  // assuming output is a string; change if it's a different type
   }
